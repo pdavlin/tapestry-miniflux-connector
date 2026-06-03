@@ -1,28 +1,24 @@
 {
-  "actions": [
+  "items": [
     {
       "id": "mark_as_read",
-      "display_name": "Mark as Read",
-      "icon": "eye",
-      "destructive": false
+      "name": "Mark as Read",
+      "icon": "eye"
     },
     {
       "id": "mark_as_unread",
-      "display_name": "Mark as Unread",
-      "icon": "eye.slash",
-      "destructive": false
+      "name": "Mark as Unread",
+      "icon": "eye.slash"
     },
     {
       "id": "star",
-      "display_name": "Star",
-      "icon": "star",
-      "destructive": false
+      "name": "Star",
+      "icon": "star"
     },
     {
       "id": "unstar",
-      "display_name": "Unstar",
-      "icon": "star.fill",
-      "destructive": false
+      "name": "Unstar",
+      "icon": "star.fill"
     }
   ]
 }
