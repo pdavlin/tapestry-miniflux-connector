@@ -9,6 +9,6 @@
   "check_interval": 300,
   "provides_attachments": false,
   "item_style": "post",
-  "version": 2,
+  "version": 3,
   "minimum_app_version": "1.4"
 }

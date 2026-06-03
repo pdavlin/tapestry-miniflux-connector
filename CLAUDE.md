@@ -178,7 +178,10 @@ if (entry.enclosures && entry.enclosures.length > 0) {
 
 **Automated via GitHub Actions** - DO NOT commit `.tapestry` files to the repository.
 
-1. Create and push a git tag:
+**ALWAYS bump the integer `version` field in `plugin-config.json` before releasing.** Tapestry's auto-update for URL-installed connectors compares this integer against the installed copy and only updates when it is higher. The git tag / release name is invisible to that check, so shipping a new release without incrementing `version` means installed copies never update.
+
+1. Bump `version` in `io.davlin.news/plugin-config.json` (e.g. 3 → 4).
+2. Create and push a git tag:
    ```bash
    git tag v1.x.x
    git push origin v1.x.x
