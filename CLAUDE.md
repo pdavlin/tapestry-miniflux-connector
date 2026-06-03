@@ -34,7 +34,7 @@ The connector implements three mandatory functions:
 
 1. **`verify()`** - Validates configuration and authenticates with Miniflux API (`/v1/me` endpoint)
    - Skips verification if `site` or `apiToken` are not yet provided (iOS behavior during typing)
-   - Returns user info and sets `displayName` via `processVerification()`
+   - Returns user info via `processVerification()` with `displayName`, Miniflux `icon`, `baseUrl`, and an `accountIdentity` for the connected user
 
 2. **`load()`** - Fetches unread entries from Miniflux API (`/v1/entries`) and converts them to Tapestry Items
    - Uses adaptive time window: 7 days on first load, 4 hours on subsequent loads
@@ -137,9 +137,12 @@ if (entry.enclosures && entry.enclosures.length > 0) {
   ```
 - **Key Endpoints**:
   - `GET /v1/me` - Verify authentication and get user info
-  - `GET /v1/entries?status=unread&order=published_at&direction=desc&{timeParam}={timestamp}&limit={limit}` - Fetch entries
+  - `GET /v1/entries?status=unread&order=published_at&direction=desc&globally_visible=true&{timeParam}={timestamp}&limit={limit}` - Fetch entries
     - First load uses `published_after` (7 days back), subsequent loads use `changed_after` (4 hours back) for better multi-device sync
+    - `globally_visible=true` respects categories marked "hide globally" (Miniflux 2.2.8+; ignored on older servers)
     - `limit`: Maximum number of entries to fetch (default: 500)
+    - Fetched via `sendConditionalRequest()` so an unchanged feed returns `304` (null response) and is skipped
+    - When present, `reading_time` (minutes) is prepended to the item body as "N min read"
   - `PUT /v1/entries` - Update entry status
     - Body (JSON): `{ "entry_ids": [id], "status": "read" }` or `{ "entry_ids": [id], "status": "unread" }`
     - **Must be passed to `sendRequest` as a string** via `JSON.stringify(...)` — Tapestry does NOT serialize objects for you (see Tapestry API note below).

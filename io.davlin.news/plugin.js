@@ -38,7 +38,9 @@ function buildEntriesUrl(categoryId, timestamp, timeParam) {
     var baseUrl = site.replace(/\/$/, "");
 
     // Start with base endpoint
-    var url = baseUrl + "/v1/entries?status=unread&order=published_at&direction=desc";
+    // globally_visible=true respects categories marked "hide globally" in
+    // Miniflux (v2.2.8+); the parameter is ignored on older servers.
+    var url = baseUrl + "/v1/entries?status=unread&order=published_at&direction=desc&globally_visible=true";
 
     // Add time filter using provided parameter name and timestamp
     url += "&" + timeParam + "=" + timestamp;
@@ -102,7 +104,13 @@ function convertEntryToItem(entry, iconMap) {
 
     // Set basic properties
     item.title = entry.title;
-    item.body = entry.content; // HTML content from Miniflux
+
+    // Prepend Miniflux's estimated reading time when available
+    if (entry.reading_time && entry.reading_time > 0) {
+        item.body = "<p><em>" + entry.reading_time + " min read</em></p>" + entry.content;
+    } else {
+        item.body = entry.content; // HTML content from Miniflux
+    }
 
     // Set author to feed name with favicon
     if (entry.feed && entry.feed.title) {
@@ -239,10 +247,22 @@ function verify() {
         var userData = JSON.parse(response);
         var displayName = userData.username ? "Miniflux (" + userData.username + ")" : "Miniflux Feed";
 
+        // Build a richer verification config: feed icon, base URL for
+        // resolving relative paths, and the connected account identity.
+        var verificationConfig = {
+            displayName: displayName,
+            icon: "https://raw.githubusercontent.com/miniflux/logo/master/optimized/icon-120.png",
+            baseUrl: baseUrl
+        };
+
+        if (userData.username) {
+            var accountIdentity = Identity.createWithName(userData.username);
+            accountIdentity.uri = baseUrl;
+            verificationConfig.accountIdentity = accountIdentity;
+        }
+
         // Signal successful verification to Tapestry
-        processVerification({
-            displayName: displayName
-        });
+        processVerification(verificationConfig);
 
         return response;
     })
@@ -306,8 +326,17 @@ function load() {
     var url = buildEntriesUrl(categoryId, timestamp, timeParam);
     console.log("Fetching from: " + url);
 
-    sendRequest(url, "GET", null, getAuthHeaders())
+    // sendConditionalRequest manages ETag / If-Modified-Since automatically.
+    // On a 304 Not Modified, response is null and we skip reprocessing.
+    sendConditionalRequest(url, "GET", null, getAuthHeaders())
         .then(function(response) {
+            if (response === null) {
+                console.log("No changes since last fetch (304 Not Modified)");
+                setItem("lastFetchTime", Math.floor(Date.now() / 1000).toString());
+                processResults([]);
+                return;
+            }
+
             var data = JSON.parse(response);
             console.log("Received " + data.total + " unread articles");
 
